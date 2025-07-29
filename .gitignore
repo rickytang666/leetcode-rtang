@@ -12,7 +12,6 @@ Thumbs.db
 *.dll
 *.log
 *.dSYM/
-*.stackdump
 
 # CMake build directory
 /build/
@@ -61,3 +60,21 @@ venv/
 *.bin
 *.dat
 *.csv
+
+# === Additional ignores ===
+*.dSYM
+*.dSYM/
+# Ignore all .dSYM folders and files recursively
+**/*.dSYM
+**/*.dSYM/
+
+# Ignore all Unix executables (no extension) in all subfolders, but not code/docs/config
+*/[a-zA-Z0-9_-]*
+!*/*.cpp
+!*/*.h
+!*/*.hpp
+!*/*.py
+!*/*.java
+!*/*.go
+!*/*.js
+!*/*.md
