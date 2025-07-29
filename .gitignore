@@ -1,0 +1,63 @@
+# === OS/System files ===
+.DS_Store
+Thumbs.db
+
+# === C++ build artifacts ===
+*.out
+*.o
+*.obj
+*.exe
+*.a
+*.so
+*.dll
+*.log
+*.dSYM/
+*.stackdump
+
+# CMake build directory
+/build/
+/cmake-build-*/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+env/
+venv/
+.venv/
+
+# === Java ===
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+/.idea/
+/target/
+/*.log
+
+# === Go ===
+*.exe
+*.test
+*.out
+
+# === VSCode ===
+.vscode/
+
+# === JetBrains IDEs ===
+.idea/
+*.iml
+
+# === Miscellaneous ===
+*.swp
+*~
+
+# === Optional: Ignore binary inputs/outputs ===
+*.bin
+*.dat
+*.csv
