@@ -1,2 +1,2 @@
-# leetcode-rtang
-LeetCode problems with solutions
+# Ricky's LeetCode Work
+LeetCode problems with solutions - by Ricky Tang
