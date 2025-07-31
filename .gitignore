@@ -1,8 +1,40 @@
-# === OS/System files ===
-.DS_Store
-Thumbs.db
+# === Ignore everything by default ===
+*
 
-# === C++ build artifacts ===
+# === Allow folder structure ===
+!*/
+
+# === Track source code ===
+!**/*.cpp
+!**/*.c
+!**/*.h
+!**/*.hpp
+!**/*.py
+!**/*.java
+!**/*.go
+!**/*.js
+!**/*.ts
+!**/*.cs         # C#
+!**/*.swift
+!**/*.rs         # Rust
+!**/*.kt         # Kotlin
+!**/*.scala
+!**/*.rb         # Ruby
+!**/*.php
+
+# === Track docs/config files ===
+!**/*.md
+!**/*.txt
+!**/*.json
+!**/*.yaml
+!**/*.yml
+!**/*.toml
+!**/*.ini
+!Makefile
+!README
+!LICENSE
+
+# === Ignore build artifacts ===
 *.out
 *.o
 *.obj
@@ -10,70 +42,23 @@ Thumbs.db
 *.a
 *.so
 *.dll
-*.log
-*.dSYM/
-
-# CMake build directory
-/build/
-/cmake-build-*/
-
-# === Python ===
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.egg
-*.egg-info/
-dist/
-build/
-env/
-venv/
-.venv/
-
-# === Java ===
 *.class
 *.jar
 *.war
 *.ear
-*.iml
-/.idea/
+*.log
+*.dSYM/
+*.dSYM
+
+# === Ignore common build folders ===
+/build/
+/dist/
+/bin/
 /target/
-/*.log
 
-# === Go ===
-*.exe
-*.test
-*.out
-
-# === VSCode ===
+# === Ignore IDE/editor files ===
 .vscode/
-
-# === JetBrains IDEs ===
 .idea/
 *.iml
-
-# === Miscellaneous ===
 *.swp
 *~
-
-# === Optional: Ignore binary inputs/outputs ===
-*.bin
-*.dat
-*.csv
-
-# === Additional ignores ===
-*.dSYM
-*.dSYM/
-# Ignore all .dSYM folders and files recursively
-**/*.dSYM
-**/*.dSYM/
-
-# Ignore all Unix executables (no extension) in all subfolders, but not code/docs/config
-!*/*.cpp
-!*/*.h
-!*/*.hpp
-!*/*.py
-!*/*.java
-!*/*.go
-!*/*.js
-!*/*.md
