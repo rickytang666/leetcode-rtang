@@ -41,6 +41,9 @@ public:
 
 int main()
 {
-    cout << "Hello C++" << endl;
+    Solution sol;
+    vector<int> nums = {1, 2, 3, 4};
+    int k = 5;
+    cout << sol.maxOperations(nums, k) << endl; // expected output: 2
     return 0;
 }
