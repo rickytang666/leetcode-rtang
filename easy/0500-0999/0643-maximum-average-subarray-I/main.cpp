@@ -8,7 +8,7 @@ public:
     {
         double curr = accumulate(nums.begin(), nums.begin() + k, 0.0), ans = curr;
         for (int i = k; i < nums.size(); ++i)
-            ans = max(ans, curr + nums[i] - nums[i - k]);
+            ans = max(ans, curr += nums[i] - nums[i - k]);
         return ans / k;
     }
 };
