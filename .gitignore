@@ -21,6 +21,12 @@
 !**/*.scala
 !**/*.rb         # Ruby
 !**/*.php
+!**/*.sh
+!**/*.pl         # Perl
+!**/*.lua
+!**/*.r          # R
+!**/*.jl         # Julia
+!**/*.sql       # SQL
 
 # === Track docs/config files ===
 !**/*.md
