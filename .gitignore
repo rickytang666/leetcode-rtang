@@ -14,19 +14,19 @@
 !**/*.go
 !**/*.js
 !**/*.ts
-!**/*.cs         # C#
+!**/*.cs
 !**/*.swift
-!**/*.rs         # Rust
-!**/*.kt         # Kotlin
+!**/*.rs
+!**/*.kt
 !**/*.scala
-!**/*.rb         # Ruby
+!**/*.rb
 !**/*.php
 !**/*.sh
-!**/*.pl         # Perl
+!**/*.pl
 !**/*.lua
-!**/*.r          # R
-!**/*.jl         # Julia
-!**/*.sql       # SQL
+!**/*.r
+!**/*.jl
+!**/*.sql
 
 # === Track docs/config files ===
 !**/*.md
