@@ -1,6 +1,9 @@
 # === Ignore everything by default ===
 *
 
+# === Allow dot files (like .gitignore, .env, etc.) ===
+!.*
+
 # === Allow folder structure ===
 !*/
 
