@@ -3,19 +3,20 @@
 
 int finalPositionOfSnake(int n, char **commands, int commandsSize)
 {
-    int r = 0, c = 0;
+    int ans = 0;
     for (int i = 0; i < commandsSize; ++i)
     {
-        if (!strcmp(commands[i], "UP"))
-            --r;
-        else if (!strcmp(commands[i], "RIGHT"))
-            ++c;
-        else if (!strcmp(commands[i], "DOWN"))
-            ++r;
+        char c = commands[i][0];
+        if (c == 'L')
+            --ans;
+        else if (c == 'R')
+            ++ans;
+        else if (c == 'U')
+            ans -= n;
         else
-            --c;
+            ans += n;
     }
-    return n * r + c;
+    return ans;
 }
 
 int main(void)
