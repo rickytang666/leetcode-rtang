@@ -5,7 +5,7 @@ pads leetcode problem folders to 4 digits.
 ## usage
 
 ```bash
-./fix-folder-name.sh
+./namefix/fix-folder-name.sh
 ```
 
 ## examples
