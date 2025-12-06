@@ -5,14 +5,14 @@
  */
 
 // @lc code=start
-int tr(int n, int a, int b)
+long long tr(int n, long long a, long long b)
 {
     if (n == 0)
         return a;
     return tr(n - 1, b, a + b);
 }
 
-int climbStairs(int n)
+long long climbStairs(int n)
 {
     return tr(n, 1, 1);
 }
