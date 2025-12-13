@@ -30,6 +30,7 @@
 !**/*.r
 !**/*.jl
 !**/*.sql
+!**/*.ps1
 
 # === Track docs/config files ===
 !**/*.md

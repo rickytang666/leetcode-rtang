@@ -4,8 +4,16 @@ pads leetcode problem folders to 4 digits.
 
 ## usage
 
+### mac/linux
+
 ```bash
-./namefix/fix-folder-name.sh
+./namefix/namefix.sh
+```
+
+### windows
+
+```powershell
+namefix\namefix.ps1
 ```
 
 ## examples
