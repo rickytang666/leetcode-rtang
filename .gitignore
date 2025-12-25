@@ -72,3 +72,11 @@
 *.iml
 *.swp
 *~
+
+# === .env files ===
+.env
+!.env.example
+
+# === Virtual Environment ===
+.venv/
+venv/
