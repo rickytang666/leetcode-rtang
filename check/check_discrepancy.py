@@ -1,6 +1,5 @@
 import os
 import requests
-import json
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -9,6 +8,12 @@ load_dotenv()
 LEETCODE_SESSION = os.getenv("LEETCODE_SESSION")
 LEETCODE_GRAPHQL_URL = "https://leetcode.com/graphql"
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ansi color codes
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RESET = "\033[0m"
 
 # GraphQL query to fetch all solved questions
 # Note: This query uses the 'problemsetQuestionList' which returns a list of questions.
@@ -35,8 +40,8 @@ query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $fi
 
 def get_solved_problems():
     if not LEETCODE_SESSION:
-        print("Error: LEETCODE_SESSION not found in environment variables.")
-        return set()
+        print(f"{RED}error: LEETCODE_SESSION not found in environment variables.{RESET}")
+        return {}
 
     headers = {
         "Content-Type": "application/json",
@@ -44,49 +49,53 @@ def get_solved_problems():
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"
     }
 
-    solved_ids = set()
-    limit = 100
-    skip = 0
+    solved_ids = {} # map id -> status (ac, notac)
+    # fetch both 'ac' (accepted) and 'tried' (attempted but not passed)
+    # leetcode status keys: "AC", "TRIED"
     
-    print("Fetching solved problems from LeetCode...")
-
-    while True:
-        payload = {
-            "query": SOLVED_QUESTIONS_QUERY,
-            "variables": {
-                "categorySlug": "",
-                "limit": limit,
-                "skip": skip,
-                "filters": {"status": "AC"}
+    for status_filter in ["AC", "TRIED"]:
+        limit = 100
+        skip = 0
+        print(f"fetching '{status_filter}' problems from leetcode...")
+        
+        while True:
+            payload = {
+                "query": SOLVED_QUESTIONS_QUERY,
+                "variables": {
+                    "categorySlug": "",
+                    "limit": limit,
+                    "skip": skip,
+                    "filters": {"status": status_filter}
+                }
             }
-        }
 
-        try:
-            response = requests.post(LEETCODE_GRAPHQL_URL, json=payload, headers=headers, timeout=30)
-            response.raise_for_status()
-            data = response.json()
-            
-            q_list = data.get("data", {}).get("problemsetQuestionList", {})
-            questions = q_list.get("questions", [])
-            
-            if not questions:
-                break
+            try:
+                response = requests.post(LEETCODE_GRAPHQL_URL, json=payload, headers=headers, timeout=30)
+                response.raise_for_status()
+                data = response.json()
                 
-            for q in questions:
-                fid = q.get("questionFrontendId")
-                if fid:
-                    solved_ids.add(str(fid))
-            
-            print(f"Fetched {len(questions)} problems (total so far: {len(solved_ids)})")
-            
-            if len(questions) < limit:
-                break
+                q_list = data.get("data", {}).get("problemsetQuestionList", {})
+                questions = q_list.get("questions", [])
                 
-            skip += limit
-            
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching solved problems: {e}")
-            break
+                if not questions:
+                    break
+                    
+                for q in questions:
+                    fid = q.get("questionFrontendId")
+                    q_status = q.get("status") # 'ac' or 'notac' usually returned by api
+                    if fid:
+                        solved_ids[str(fid)] = q_status
+                
+                print(f"fetched {len(questions)} problems (total unique: {len(solved_ids)})")
+                
+                if len(questions) < limit:
+                    break
+                    
+                skip += limit
+                
+            except requests.exceptions.RequestException as e:
+                print(f"{RED}error fetching problems: {e}{RESET}")
+                break
             
     return solved_ids
 
@@ -95,7 +104,7 @@ def get_local_problems():
     
     difficulty_dirs = ["1-easy", "2-medium", "3-hard"]
     
-    print("Scanning local directories...")
+    print("scanning local directories...")
     
     for diff_dir in difficulty_dirs:
         diff_path = os.path.join(ROOT_DIR, diff_dir)
@@ -126,31 +135,40 @@ def get_local_problems():
                         "path": problem_path
                     })
     
-    print(f"Found {len(local_problems)} local problem folders.")
+    print(f"found {len(local_problems)} local problem folders.")
     return local_problems
 
 def main():
-    solved_ids = get_solved_problems()
+    solved_map = get_solved_problems()
     local_problems = get_local_problems()
     
-    if not solved_ids:
-        print("Warning: No solved problems fetched. Check your generic LeetCode session cookie.")
-        # Proceeding anyway usually means everything will be a discrepancy if solved_ids is empty
+    if not solved_map:
+        print(f"{YELLOW}warning: no problems fetched. check your generic leetcode session cookie.{RESET}")
     
-    print("\nAnalyzing discrepancies...")
+    print("\nanalyzing discrepancies...")
     
-    discrepancies = []
+    discrepancy_count = 0
     
     for prob in local_problems:
-        if prob["id"] not in solved_ids:
-            discrepancies.append(prob)
+        fid = prob["id"]
+        status = solved_map.get(fid)
+        
+        if status == 'ac':
+            continue
             
-    if discrepancies:
-        print(f"\nFound {len(discrepancies)} discrepancies (Locally present but not in 'AC' list):")
-        for d in discrepancies:
-            print(f"- [{d['id']}] {d['folder']}")
+        discrepancy_count += 1
+        
+        if status:
+            # attempted but not ac
+            print(f"- [{YELLOW}{fid}{RESET}] {prob['folder']} ({YELLOW}attempted{RESET})")
+        else:
+            # really missing (not in fetched list or status is null)
+            print(f"- [{RED}{fid}{RESET}] {prob['folder']} ({RED}missing/unknown{RESET})")
+            
+    if discrepancy_count == 0:
+        print(f"\n{GREEN}all done! no discrepancies found.{RESET}")
     else:
-        print("\nNo discrepancies found. All local problems are marked as Solved on LeetCode.")
+        print(f"\nfound {discrepancy_count} discrepancies.")
 
 if __name__ == "__main__":
     main()
