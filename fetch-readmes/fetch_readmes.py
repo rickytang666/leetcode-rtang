@@ -5,6 +5,11 @@ import argparse
 import sys
 from markdownify import markdownify as md
 
+# ANSI color codes
+RED = "\033[91m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
+
 # constants
 LEETCODE_GRAPHQL_URL = "https://leetcode.com/graphql"
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # parent of fetch-readmes
@@ -133,45 +138,51 @@ def format_readme(question_data):
     return markdown_content
 
 def process_problem(problem_path, folder_name, id_map):
-    # check if readme exists
-    if os.path.exists(os.path.join(problem_path, "README.md")):
-        return False
-        
-    # extract id from folder name (e.g. 0001-two-sum -> 1)
-    parts = folder_name.split("-", 1)
-    if len(parts) < 2 or not parts[0].isdigit():
-        return False
-    
-    folder_id_str = parts[0]
-    # remove leading zeros for map lookup (0001 -> 1)
-    # but keep as string because map keys are strings
-    lookup_id = str(int(folder_id_str))
-    
-    title_slug = id_map.get(lookup_id)
-    
-    # fallback: if not in map, try to use the slug from folder name?
-    # current decision: prioritize map. if not in map, might be stale id or new problem script hasn't seen?
-    # let's try fallback to folder name slug if map lookup fails, but warn.
-    if not title_slug:
-        title_slug = parts[1]
-        print(f"warning: id {lookup_id} not found in map. trying slug from folder: {title_slug}")
-    else:
-        print(f"processing: {folder_name} -> id: {lookup_id} -> slug: {title_slug}")
-    
-    question_data = get_question_details(title_slug)
-    if not question_data:
-        print(f"failed to get info for {title_slug}")
-        return False
-        
-    readme_content = format_readme(question_data)
-    if readme_content:
-        target_path = os.path.join(problem_path, "README.md")
-        with open(target_path, "w", encoding="utf-8") as f:
-            f.write(readme_content)
-        print(f"generated readme for {folder_name}")
-        return True
+    try:
+        # check if readme exists
+        if os.path.exists(os.path.join(problem_path, "README.md")):
+            return False, False
             
-    return False
+        # extract id from folder name (e.g. 0001-two-sum -> 1)
+        parts = folder_name.split("-", 1)
+        if len(parts) < 2 or not parts[0].isdigit():
+            return False, False
+        
+        folder_id_str = parts[0]
+        # remove leading zeros for map lookup (0001 -> 1)
+        # but keep as string because map keys are strings
+        lookup_id = str(int(folder_id_str))
+        
+        title_slug = id_map.get(lookup_id)
+        
+        # fallback: if not in map, try to use the slug from folder name?
+        # current decision: prioritize map. if not in map, might be stale id or new problem script hasn't seen?
+        # let's try fallback to folder name slug if map lookup fails, but warn.
+        warning_occurred = False
+        if not title_slug:
+            title_slug = parts[1]
+            print(f"{RED}warning: id {lookup_id} not found in map. trying slug from folder: {title_slug}{RESET}")
+            warning_occurred = True
+        else:
+            print(f"processing: {folder_name} -> id: {lookup_id} -> slug: {title_slug}")
+        
+        question_data = get_question_details(title_slug)
+        if not question_data:
+            print(f"{RED}failed to get info for {title_slug}{RESET}")
+            return False, True
+            
+        readme_content = format_readme(question_data)
+        if readme_content:
+            target_path = os.path.join(problem_path, "README.md")
+            with open(target_path, "w", encoding="utf-8") as f:
+                f.write(readme_content)
+            print(f"generated readme for {folder_name}")
+            return True, warning_occurred
+                
+        return False, True
+    except Exception as e:
+        print(f"{RED}Error processing {folder_name}: {e}{RESET}")
+        return False, True
 
 def main():
     parser = argparse.ArgumentParser(description="fetch leetcode readmes")
@@ -189,6 +200,8 @@ def main():
     
     print("starting sorted scan...")
     
+    any_failure = False
+
     for diff_dir in difficulty_dirs:
         diff_path = os.path.join(ROOT_DIR, diff_dir)
         if not os.path.exists(diff_path):
@@ -208,10 +221,16 @@ def main():
                 if not os.path.isdir(problem_path) or problem_dir.startswith("."):
                     continue
                     
-                success = process_problem(problem_path, problem_dir, id_map)
+                success, error = process_problem(problem_path, problem_dir, id_map)
+                if error:
+                    any_failure = True
+
                 if args.test and success:
                     print("test mode enabled. stopping after first success.")
                     sys.exit(0)
+    
+    if not any_failure:
+        print(f"{GREEN}all done!{RESET}")
 
 if __name__ == "__main__":
     main()
