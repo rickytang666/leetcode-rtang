@@ -19,3 +19,9 @@ it fetches problem details (description, difficulty, etc.) from leetcode's graph
    ```bash
    python3 fetch_readmes.py
    ```
+
+   to check only newly added (git modified/untracked) problems:
+
+   ```bash
+   python3 fetch_readmes.py --new
+   ```

@@ -3,6 +3,7 @@ import requests
 import json
 import argparse
 import sys
+import subprocess
 from markdownify import markdownify as md
 
 # ANSI color codes
@@ -184,9 +185,58 @@ def process_problem(problem_path, folder_name, id_map):
         print(f"{RED}Error processing {folder_name}: {e}{RESET}")
         return False, True
 
+def get_changed_dirs():
+    """returns a set of absolute paths for directories that have changed (git status)"""
+    print("checking git status for changed files...")
+    try:
+        # get status of all files (porcelain is stable output-friendly)
+        result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, cwd=ROOT_DIR)
+        
+        changed_paths = set()
+        
+        # parse output lines like " M some/file.py" or "?? new/file.py"
+        for line in result.stdout.splitlines():
+            if len(line.strip()) < 3:
+                continue
+            
+            # path is usually from char 3 to end
+            rel_path = line[3:].strip()
+            # handle rename cases like "R  old -> new" if essential, but keep simple for now
+            if " -> " in rel_path: 
+                rel_path = rel_path.split(" -> ")[-1]
+                
+            abs_path = os.path.abspath(os.path.join(ROOT_DIR, rel_path))
+            
+            # we need to find the "depth 3" problem folder corresponding to this file
+            # e.g., ROOT/1-easy/range/problem-folder/ref.txt -> ROOT/1-easy/range/problem-folder
+            
+            # simple heuristic: walk up until we find a folder inside a "range folder" inside a "diff folder"
+            # or just iterate all problem folders and see which ones contain this valid file
+            # better yet: just look at the path structure relative to ROOT
+            # expected: ROOT / difficulty / range / problem
+            
+            parts = os.path.relpath(abs_path, ROOT_DIR).split(os.sep)
+            if len(parts) >= 3:
+                # parts[0] = difficulty (e.g. 1-easy)
+                # parts[1] = range (e.g. 0001-0499)
+                # parts[2] = problem (e.g. 0001-two-sum)
+                # check if these look right
+                if parts[0] in ["1-easy", "2-medium", "3-hard"]:
+                     # construct path up to depth 3
+                     problem_path = os.path.join(ROOT_DIR, parts[0], parts[1], parts[2])
+                     changed_paths.add(problem_path)
+
+        print(f"found {len(changed_paths)} changed problem directories.")
+        return changed_paths
+        
+    except Exception as e:
+        print(f"{RED}error checking git status: {e}{RESET}")
+        return set()
+
 def main():
     parser = argparse.ArgumentParser(description="fetch leetcode readmes")
     parser.add_argument("--test", action="store_true", help="run on a single problem and exit")
+    parser.add_argument("--new", action="store_true", help="run only on newly added/modified problems (git status)")
     args = parser.parse_args()
 
     # build global map first
@@ -194,11 +244,18 @@ def main():
     if not id_map:
         print("failed to build id map. exiting.")
         sys.exit(1)
+        
+    target_dirs = None
+    if args.new:
+        target_dirs = get_changed_dirs()
+        if not target_dirs:
+            print("no changes detected via git status. exiting.")
+            sys.exit(0)
 
     # folders to scan (depth 1)
     difficulty_dirs = ["1-easy", "2-medium", "3-hard"]
     
-    print("starting sorted scan...")
+    print("starting scan...")
     
     any_failure = False
 
@@ -219,6 +276,10 @@ def main():
             for problem_dir in problem_dirs:
                 problem_path = os.path.join(range_path, problem_dir)
                 if not os.path.isdir(problem_path) or problem_dir.startswith("."):
+                    continue
+                
+                # if --new, filter by target_dirs
+                if args.new and problem_path not in target_dirs:
                     continue
                     
                 success, error = process_problem(problem_path, problem_dir, id_map)
