@@ -134,7 +134,7 @@ def format_readme(question_data):
         markdown_content += "\n\n---\n\n"
         markdown_content += "## Hints\n\n"
         for i, hint in enumerate(hints, 1):
-            markdown_content += f"{i}. {hint}\n"
+            markdown_content += f"<details>\n<summary>Hint {i}</summary>\n\n{hint}\n</details>\n\n"
 
     return markdown_content
 

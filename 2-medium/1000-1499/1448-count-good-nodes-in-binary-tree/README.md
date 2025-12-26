@@ -58,4 +58,9 @@ Explanation: Root is considered as good.
 
 ## Hints
 
-1. Use DFS (Depth First Search) to traverse the tree, and constantly keep track of the current path maximum.
+<details>
+<summary>Hint 1</summary>
+
+Use DFS (Depth First Search) to traverse the tree, and constantly keep track of the current path maximum.
+</details>
+
