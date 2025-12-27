@@ -4,6 +4,9 @@ import json
 import argparse
 import sys
 import subprocess
+import sys
+import subprocess
+import re
 from markdownify import markdownify as md
 
 # ANSI color codes
@@ -192,7 +195,13 @@ def get_changed_dirs():
         # get status of all files (porcelain is stable output-friendly)
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, cwd=ROOT_DIR)
         
-        changed_paths = set()
+        changed_problem_dirs = set()
+        
+        # regex to identify non-problem folders
+        # 1-easy, 2-medium, 3-hard
+        category_re = re.compile(r"^\d+-(easy|medium|hard)$")
+        # 0001-0499 (range folders)
+        range_re = re.compile(r"^\d+-\d+$")
         
         # parse output lines like " M some/file.py" or "?? new/file.py"
         for line in result.stdout.splitlines():
@@ -201,33 +210,40 @@ def get_changed_dirs():
             
             # path is usually from char 3 to end
             rel_path = line[3:].strip()
-            # handle rename cases like "R  old -> new" if essential, but keep simple for now
+            # handle rename cases like "R  old -> new"
             if " -> " in rel_path: 
                 rel_path = rel_path.split(" -> ")[-1]
                 
             abs_path = os.path.abspath(os.path.join(ROOT_DIR, rel_path))
             
-            # we need to find the "depth 3" problem folder corresponding to this file
-            # e.g., ROOT/1-easy/range/problem-folder/ref.txt -> ROOT/1-easy/range/problem-folder
+            # traverse up the path to find the 'problem folder'
+            # we look for any directory component that starts with a digit
+            # and is NOT a category or range folder
             
-            # simple heuristic: walk up until we find a folder inside a "range folder" inside a "diff folder"
-            # or just iterate all problem folders and see which ones contain this valid file
-            # better yet: just look at the path structure relative to ROOT
-            # expected: ROOT / difficulty / range / problem
+            # split path into components relative to root to avoid scanning /Users/...
+            try:
+                rel_parts = os.path.relpath(abs_path, ROOT_DIR).split(os.sep)
+            except ValueError:
+                continue # path not relative to root?
             
-            parts = os.path.relpath(abs_path, ROOT_DIR).split(os.sep)
-            if len(parts) >= 3:
-                # parts[0] = difficulty (e.g. 1-easy)
-                # parts[1] = range (e.g. 0001-0499)
-                # parts[2] = problem (e.g. 0001-two-sum)
-                # check if these look right
-                if parts[0] in ["1-easy", "2-medium", "3-hard"]:
-                     # construct path up to depth 3
-                     problem_path = os.path.join(ROOT_DIR, parts[0], parts[1], parts[2])
-                     changed_paths.add(problem_path)
-
-        print(f"found {len(changed_paths)} changed problem directories.")
-        return changed_paths
+            current_scan_path = ROOT_DIR
+            for part in rel_parts:
+                current_scan_path = os.path.join(current_scan_path, part)
+                
+                # check if this part looks like a potential problem folder
+                if part[0].isdigit():
+                    if category_re.match(part):
+                        continue
+                    if range_re.match(part):
+                        continue
+                    
+                    # if we are here, it starts with digit and isn't a structural folder
+                    # it's likely a problem folder (e.g. 0001-two-sum, 0098-validate...)
+                    if os.path.isdir(current_scan_path):
+                        changed_problem_dirs.add(current_scan_path)
+                        
+        print(f"found {len(changed_problem_dirs)} changed problem directories.")
+        return changed_problem_dirs
         
     except Exception as e:
         print(f"{RED}error checking git status: {e}{RESET}")
@@ -251,6 +267,24 @@ def main():
         if not target_dirs:
             print("no changes detected via git status. exiting.")
             sys.exit(0)
+        
+        # directly iterate over the identified target directories
+        print(f"processing {len(target_dirs)} detected problem folders...")
+        any_failure = False
+        for problem_path in target_dirs:
+            if not os.path.isdir(problem_path):
+                continue
+            folder_name = os.path.basename(problem_path)
+            success, error = process_problem(problem_path, folder_name, id_map)
+            if error:
+                any_failure = True
+            if args.test and success:
+                print("test mode enabled. stopping after first success.")
+                sys.exit(0)
+        
+        if not any_failure:
+            print(f"{GREEN}all done!{RESET}")
+        return
 
     # folders to scan (depth 1)
     difficulty_dirs = ["1-easy", "2-medium", "3-hard"]
