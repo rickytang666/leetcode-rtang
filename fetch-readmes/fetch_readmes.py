@@ -17,6 +17,7 @@ RESET = "\033[0m"
 # constants
 LEETCODE_GRAPHQL_URL = "https://leetcode.com/graphql"
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # parent of fetch-readmes
+CACHE_FILE = os.path.join(ROOT_DIR, "fetch-readmes", "id_map.json")
 
 HEADERS = {
     "Content-Type": "application/json",
@@ -25,11 +26,11 @@ HEADERS = {
 
 # query to fetch all questions for id -> slug mapping
 ALL_QUESTIONS_QUERY = """
-query problemsetQuestionList($limit: Int) {
+query problemsetQuestionList($limit: Int, $skip: Int) {
     problemsetQuestionList: questionList(
         categorySlug: ""
         limit: $limit
-        skip: 0
+        skip: $skip
         filters: {}
     ) {
         questions: data {
@@ -39,6 +40,7 @@ query problemsetQuestionList($limit: Int) {
     }
 }
 """
+
 
 # query to fetch specific question details
 QUESTION_DATA_QUERY = """
@@ -62,32 +64,68 @@ query questionData($titleSlug: String!) {
 }
 """
 
-def build_id_to_slug_map():
+def build_id_to_slug_map(force_refresh=False):
+    # try loading from cache first
+    if not force_refresh and os.path.exists(CACHE_FILE):
+        try:
+            print("loading id map from cache...")
+            with open(CACHE_FILE, "r") as f:
+                id_map = json.load(f)
+            print(f"loaded {len(id_map)} problems from cache.")
+            return id_map
+        except:
+            print("cache invalid, fetching from remote...")
+
     print("fetching global problem list for id mapping...")
-    payload = {
-        "operationName": "problemsetQuestionList",
-        "variables": {"limit": 10000}, # huge limit to get all
-        "query": ALL_QUESTIONS_QUERY
-    }
     
+    id_map = {}
+    limit = 100
+    skip = 0
+    
+    while True:
+        payload = {
+            "operationName": "problemsetQuestionList",
+            "variables": {"limit": limit, "skip": skip},
+            "query": ALL_QUESTIONS_QUERY
+        }
+        
+        try:
+            response = requests.post(LEETCODE_GRAPHQL_URL, json=payload, headers=HEADERS, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            questions = data.get("data", {}).get("problemsetQuestionList", {}).get("questions", [])
+            
+            if not questions:
+                break
+                
+            for q in questions:
+                fid = q.get("questionFrontendId")
+                slug = q.get("titleSlug")
+                if fid and slug:
+                    id_map[str(fid)] = slug
+            
+            print(f"fetched {len(questions)} problems (total: {len(id_map)})")
+            
+            if len(questions) < limit:
+                break
+                
+            skip += limit
+            
+        except requests.exceptions.RequestException as e:
+            print(f"error fetching problem list: {e}")
+            break
+            
+    print(f"loaded {len(id_map)} problems into map.")
+    
+    # save to cache
     try:
-        response = requests.post(LEETCODE_GRAPHQL_URL, json=payload, headers=HEADERS, timeout=30)
-        response.raise_for_status()
-        data = response.json()
-        questions = data.get("data", {}).get("problemsetQuestionList", {}).get("questions", [])
+        with open(CACHE_FILE, "w") as f:
+            json.dump(id_map, f)
+        print("saved id map to cache.")
+    except Exception as e:
+        print(f"{RED}warning: failed to save cache: {e}{RESET}")
         
-        id_map = {}
-        for q in questions:
-            fid = q.get("questionFrontendId")
-            slug = q.get("titleSlug")
-            if fid and slug:
-                id_map[str(fid)] = slug
-        
-        print(f"loaded {len(id_map)} problems into map.")
-        return id_map
-    except requests.exceptions.RequestException as e:
-        print(f"error fetching problem list: {e}")
-        return {}
+    return id_map
 
 def get_question_details(title_slug):
     payload = {
@@ -253,10 +291,11 @@ def main():
     parser = argparse.ArgumentParser(description="fetch leetcode readmes")
     parser.add_argument("--test", action="store_true", help="run on a single problem and exit")
     parser.add_argument("--new", action="store_true", help="run only on newly added/modified problems (git status)")
+    parser.add_argument("--refresh", action="store_true", help="force refresh of the id mapping cache")
     args = parser.parse_args()
 
     # build global map first
-    id_map = build_id_to_slug_map()
+    id_map = build_id_to_slug_map(force_refresh=args.refresh)
     if not id_map:
         print("failed to build id map. exiting.")
         sys.exit(1)

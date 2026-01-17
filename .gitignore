@@ -65,6 +65,7 @@
 /dist/
 /bin/
 /target/
+id_map.json
 
 # === Ignore IDE/editor files ===
 .vscode/

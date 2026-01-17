@@ -17,11 +17,17 @@ it fetches problem details (description, difficulty, etc.) from leetcode's graph
 3. run the script:
 
    ```bash
-   python3 fetch_readmes.py
+   python fetch_readmes.py
    ```
 
    to check only newly added (git modified/untracked) problems:
 
    ```bash
-   python3 fetch_readmes.py --new
+   python fetch_readmes.py --new
+   ```
+
+   **optimization**: the script caches the problems in `id_map.json`. to force a fresh fetch run this:
+
+   ```bash
+   python fetch_readmes.py --refresh
    ```
