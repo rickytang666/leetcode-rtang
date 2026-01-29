@@ -7,27 +7,21 @@ it fetches problem details (description, difficulty, etc.) from leetcode's graph
 
 ## how to run
 
-1. ensure the shared virtual environment is set up at the repo root.
-2. activate the virtual environment:
+1. ensure the project is initialized with `uv`.
+2. run the script using `uv`:
 
    ```bash
-   source ../.venv/bin/activate
-   ```
-
-3. run the script:
-
-   ```bash
-   python fetch_readmes.py
+   uv run python fetch_readmes.py
    ```
 
    to check only newly added (git modified/untracked) problems:
 
    ```bash
-   python fetch_readmes.py --new
+   uv run python fetch_readmes.py --new
    ```
 
    **optimization**: the script caches the problems in `id_map.json`. to force a fresh fetch run this:
 
    ```bash
-   python fetch_readmes.py --refresh
+   uv run python fetch_readmes.py --refresh
    ```

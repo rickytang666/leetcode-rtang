@@ -8,14 +8,8 @@ it distinguishes between problems u have "attempted" (yellow) and those that are
 ## how to run
 
 1. ensure `.env` file exists in repo root with `leetcode_session` cookie.
-2. activate the shared virtual environment:
+2. run the script using `uv`:
 
    ```bash
-   source ../.venv/bin/activate
-   ```
-
-3. run the script:
-
-   ```bash
-   python3 check_discrepancy.py
+   uv run python check_discrepancy.py
    ```
